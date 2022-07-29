@@ -2,7 +2,7 @@ const authMod = require('../auth/auth-model')
 
 module.exports = {
     uniqueUsername,
-    shape,
+    shape
 };
 
 async function uniqueUsername(req, res, next) {
