@@ -9,8 +9,11 @@ const userCred = {username: "Captain Marvel", password: "foobar"}
 const invalidUser = {message: "username and password required"}
 const notUnique = {message: "username taken"}
 
+const fakeToken = 'kJSAKDJFOIWSDKJLFSCMOSDXZKCLCJFASDPO.SDAOIFJODSJF.ASDFPASDJFOJADSK'
+
 const regURL = '/api/auth/register'
 const loginURL = '/api/auth/login'
+const jokeURL = '/api/jokes'
 
 beforeAll(async () => {
   await db.migrate.rollback();
@@ -92,4 +95,51 @@ describe('Authenication Endpoints', () => {
       expect(result.body).toEqual({message: 'invalid credentials'})
     })
   })// endpoint /api/auth/login
+
+  describe('[GET] /api/jokes', () => {
+    describe('when: not logged in', () => {
+      test('status code 404', async () => {
+        let result = await request(server).get(jokeURL);
+        expect(result.status).toBe(404);
+      })
+      test('requires authorization token to see jokes', async () => {
+        let result = await request(server).get(jokeURL);
+        expect(result.body).toEqual({message: "token required"});
+      })
+    })// end of not logged in
+    describe('when: logged in with correct authorization', () => {
+      let authToken;
+      beforeAll(async () => {
+        await request(server).post(regURL).send(userCred);
+        let {body} = await request(server).post(loginURL).send(userCred);
+        authToken = body.token;
+      });
+      test('status code 200', async () => {
+        let result = await request(server).get(jokeURL).set('Authorization', authToken);
+        expect(result.status).toBe(200);
+      })
+      test('can see jokes', async () => {
+        let result = await request(server).get(jokeURL).set('Authorization', authToken);;
+        expect(result.body).toHaveLength(3);
+        expect(result.body[0]).toHaveProperty('joke');
+        expect(result.body[0]).toEqual({
+          "id": "0189hNRf2g",
+          "joke": "I'm tired of following my dreams. I'm just going to ask them where they are going and meet up with them later."
+        });
+      })
+    }); // end: logged in
+    describe('when: logged in with incorrect token', () => {
+      beforeAll(async () => {
+        await request(server).post(regURL).send(userCred);
+      })
+      test('sends 404 status code', async () => {
+        let result = await request(server).get(jokeURL).set('Authorization', fakeToken);
+        expect(result.status).toBe(404);
+      })
+      test('sends invalid token message', async () => {
+        let result = await request(server).get(jokeURL).set('Authorization', fakeToken);
+        expect(result.body).toEqual({message: "token invalid"})
+      })
+    })// end: incorrect token
+  })
 })

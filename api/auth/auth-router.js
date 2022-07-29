@@ -7,7 +7,7 @@ const {SECRET} = require('../../env');
 
 router.post('/register', validate.shape, validate.uniqueUsername, (req, res, next) => {
   const {username, password} = req.user;
-  const hash = bcryptjs.hashSync(password, 12)
+  const hash = bcryptjs.hashSync(password, 8)
   authMod.create({username, password: hash})
     .then(user => res.status(201).json(user))
     .catch(next)
